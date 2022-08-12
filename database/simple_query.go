@@ -155,11 +155,45 @@ func (dbl *Database) Insert(ctx context.Context, returnValue interface{}, sql st
 	}
 
 	if returnValue != nil {
-		if err := pgxscan.Get(ctx, conn, returnValue, sql, args...); err != nil {
+		row, err := conn.Query(ctx, sql, args...)
+		if err != nil {
+			return err
+		}
+
+		if err := pgxscan.ScanOne(returnValue, row); err != nil {
 			return err
 		}
 	} else {
 		cmd, err := conn.Exec(ctx, sql, args...)
+		if err != nil {
+			return err
+		}
+
+		if !cmd.Insert() {
+			dbl.log.Error(err)
+		}
+	}
+
+	return nil
+}
+
+func (dbl *Database) GetOrInsert(ctx context.Context, returnValue interface{}, sql string, args ...interface{}) error {
+	if returnValue != nil {
+		rconn, err := dbl.readPool.Acquire(ctx)
+		defer rconn.Release()
+		if err != nil {
+			return err
+		}
+		if err := pgxscan.Get(ctx, rconn, returnValue, sql, args...); err != nil {
+			return err
+		}
+	} else {
+		wconn, err := dbl.writePool.Acquire(ctx)
+		defer wconn.Release()
+		if err != nil {
+			return err
+		}
+		cmd, err := wconn.Exec(ctx, sql, args...)
 		if err != nil {
 			return err
 		}

@@ -29,7 +29,7 @@ func (tx *Tx) GetOne(ctx context.Context, returnValue interface{}, sql string, a
 	return pgxscan.Get(ctx, tx.transaction, returnValue, sql, args...)
 }
 
-func (tx *Tx) Insert(ctx context.Context, returnValue interface{}, sql string, args ...interface{}) error {
+func (tx *Tx) GetOrInsert(ctx context.Context, returnValue interface{}, sql string, args ...interface{}) error {
 	if returnValue != nil {
 		if err := pgxscan.Get(ctx, tx.transaction, returnValue, sql, args...); err != nil {
 			return err
@@ -39,6 +39,30 @@ func (tx *Tx) Insert(ctx context.Context, returnValue interface{}, sql string, a
 		if err != nil {
 			return err
 		}
+		if !cmd.Insert() {
+			tx.log.Error(err)
+		}
+	}
+
+	return nil
+}
+
+func (tx *Tx) Insert(ctx context.Context, returnValue interface{}, sql string, args ...interface{}) error {
+	if returnValue != nil {
+		row, err := tx.transaction.Query(ctx, sql, args...)
+		if err != nil {
+			return err
+		}
+
+		if err := pgxscan.ScanOne(returnValue, row); err != nil {
+			return err
+		}
+	} else {
+		cmd, err := tx.transaction.Exec(ctx, sql, args...)
+		if err != nil {
+			return err
+		}
+
 		if !cmd.Insert() {
 			tx.log.Error(err)
 		}

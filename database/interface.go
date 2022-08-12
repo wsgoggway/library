@@ -14,17 +14,9 @@ type Transaction interface {
 	Commit(ctx context.Context) error
 	Rollback(ctx context.Context) error
 
-	// Begin(ctx context.Context) (pgx.Tx, error)
-	// BeginFunc(ctx context.Context, f func(pgx.Tx) error) (err error)
-	// CopyFrom(ctx context.Context, tableName pgx.Identifier, columnNames []string, rowSrc pgx.CopyFromSource) (int64, error)
-	// SendBatch(ctx context.Context, b *pgx.Batch) pgx.BatchResults
-	// LargeObjects() pgx.LargeObjects
-	// Prepare(ctx context.Context, name, sql string) (*pgconn.StatementDescription, error)
-	// QueryFunc(ctx context.Context, sql string, args []interface{}, scans []interface{}, f func(pgx.QueryFuncRow) error) (pgconn.CommandTag, error)
-	// Conn() *pgx.Conn
-
 	Get(ctx context.Context, returnValue interface{}, sql string, args ...interface{}) error
 	GetOne(ctx context.Context, returnValue interface{}, sql string, args ...interface{}) error
+	GetOrInsert(ctx context.Context, returnValue interface{}, sql string, args ...interface{}) error
 	Insert(ctx context.Context, returnValue interface{}, sql string, args ...interface{}) error
 	Update(ctx context.Context, returnValue interface{}, sql string, args ...interface{}) error
 	Delete(ctx context.Context, returnValue interface{}, sql string, args ...interface{}) error
@@ -43,6 +35,7 @@ type IDatabase interface {
 	GetOne(ctx context.Context, returnValue interface{}, sql string, args ...interface{}) error
 	Count(ctx context.Context, returnValue *int64, sql string, args ...interface{}) error
 	Insert(ctx context.Context, returnValue interface{}, sql string, args ...interface{}) error
+	GetOrInsert(ctx context.Context, returnValue interface{}, sql string, args ...interface{}) error
 	Update(ctx context.Context, returnValue interface{}, sql string, args ...interface{}) error
 	Delete(ctx context.Context, returnValue interface{}, sql string, args ...interface{}) error
 	GetContext() context.Context
