@@ -5,7 +5,7 @@ import (
 
 	"github.com/georgysavva/scany/pgxscan"
 	"github.com/jackc/pgx/v4"
-	utils "github.com/justfigurs/library/utils"
+	utils "github.com/wsgoggway/library/utils"
 )
 
 // Tx is IDatabase Transaction

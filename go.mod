@@ -1,4 +1,4 @@
-module github.com/justfigurs/library
+module github.com/wsgoggway/library
 
 go 1.19
 

@@ -5,9 +5,9 @@ import (
 	"log"
 
 	"github.com/jackc/pgx/v4/pgxpool"
-	cache "github.com/justfigurs/library/cache"
-	utils "github.com/justfigurs/library/utils"
 	"github.com/kelseyhightower/envconfig"
+	cache "github.com/wsgoggway/library/cache"
+	utils "github.com/wsgoggway/library/utils"
 )
 
 type ContextKey string

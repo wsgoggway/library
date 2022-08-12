@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
-	utils "github.com/justfigurs/library/utils"
+	utils "github.com/wsgoggway/library/utils"
 )
 
 type ICache interface {

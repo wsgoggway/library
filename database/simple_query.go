@@ -8,8 +8,8 @@ import (
 	"github.com/georgysavva/scany/pgxscan"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
-	cache "github.com/justfigurs/library/cache"
-	utils "github.com/justfigurs/library/utils"
+	cache "github.com/wsgoggway/library/cache"
+	utils "github.com/wsgoggway/library/utils"
 )
 
 // Database is IDatabase implementation
