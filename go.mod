@@ -8,12 +8,15 @@ require (
 	github.com/jackc/pgconn v1.10.1
 	github.com/jackc/pgx/v4 v4.14.1
 	github.com/kelseyhightower/envconfig v1.4.0
+	github.com/stretchr/testify v1.7.0
+	google.golang.org/protobuf v1.26.0
 )
 
 require github.com/gofrs/uuid v4.2.0+incompatible // indirect
 
 require (
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
 	github.com/jackc/pgio v1.0.0 // indirect
@@ -24,6 +27,7 @@ require (
 	github.com/jackc/puddle v1.2.1 // indirect
 	github.com/lib/pq v1.10.4 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/stretchr/objx v0.3.0 // indirect
 	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3 // indirect
 	golang.org/x/net v0.0.0-20220111093109-d55c255bac03 // indirect

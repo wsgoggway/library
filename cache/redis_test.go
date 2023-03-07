@@ -25,8 +25,8 @@ package cache
 
 // 	redisClient := redis.NewClient(
 // 		&redis.Options{
-// 			Addr:         "wbdigital-haproxy.wbdigital.svc.k8s.dataline:6378",
-// 			Password:     "24J7ByPgES6D4Pxxj9Hh8ka",
+// 			Addr:         "",
+// 			Password:     "",
 // 			DialTimeout:  time.Second * 3,
 // 			ReadTimeout:  time.Second * 3,
 // 			WriteTimeout: time.Second * 3,

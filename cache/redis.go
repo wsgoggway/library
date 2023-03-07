@@ -12,13 +12,18 @@ import (
 
 type ICache interface {
 	Get(key string, in interface{}, hstore bool, field ...string) (err error)
+	HGetAll(key string) (data map[string]string, err error)
 	Store(key string, data interface{}, duration time.Duration, hstore bool, field ...string) (err error)
 	Reset(key string) (err error)
+	HRemove(key string, field ...string) error
 	ResetByParent(parentKey string) (err error)
 	ExistKey(key string) (ok bool)
 	HExistKey(key, field string) (ok bool)
 	Push(key string, data []byte) error
 	Pop(key string, in interface{}) error
+	HLen(key string) (uint64, error)
+	LLen(key string) (uint64, error)
+	RateLimit(key string, count int64, expire ...time.Duration) (ok bool)
 }
 
 type Cache struct {
@@ -34,28 +39,18 @@ func (c *Cache) SetLogger(l utils.Logger) {
 	c.log = l
 }
 
-func (c *Cache) getHash(key string, field string) (data string, err error) {
-	if data, err = c.redis.HGet(context.Background(), key, field).Result(); err != nil {
-		return
-	}
-	return
-}
-
-func (c *Cache) getSimple(key string) (data string, err error) {
-	if data, err = c.redis.Get(context.Background(), key).Result(); err != nil {
-		return
-	}
-	return
+func (c *Cache) HGetAll(key string) (data map[string]string, err error) {
+	return c.redis.HGetAll(context.Background(), key).Result()
 }
 
 func (c *Cache) Get(key string, in interface{}, hstore bool, field ...string) (err error) {
 	var data string
 	if hstore {
-		if data, err = c.getHash(key, field[0]); err != nil {
+		if data, err = c.hGet(key, field[0]); err != nil {
 			return
 		}
 	} else {
-		if data, err = c.getSimple(key); err != nil {
+		if data, err = c.get(key); err != nil {
 			return
 		}
 
@@ -69,25 +64,6 @@ func (c *Cache) Get(key string, in interface{}, hstore bool, field ...string) (e
 	return nil
 }
 
-func (c *Cache) setHash(key string, data []byte, field string) (err error) {
-	if _, err = c.redis.HSet(context.Background(), key, field, data).Result(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (c *Cache) setSimple(key string, data []byte, duration ...time.Duration) (err error) {
-	dur := 1 * time.Minute
-	if len(duration) > 0 {
-		dur = duration[0]
-	}
-
-	if _, err = c.redis.Set(context.Background(), key, data, dur).Result(); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (c *Cache) Store(key string, data interface{}, duration time.Duration, hstore bool, field ...string) (err error) {
 	serializedData, err := json.Marshal(data)
 	if err != nil {
@@ -95,7 +71,7 @@ func (c *Cache) Store(key string, data interface{}, duration time.Duration, hsto
 	}
 
 	if hstore {
-		c.setHash(key, serializedData, field[0])
+		c.setHash(key, serializedData, field[0], duration)
 	} else {
 		c.setSimple(key, serializedData, duration)
 	}
@@ -144,4 +120,35 @@ func (c *Cache) Pop(key string, in interface{}) error {
 	}
 
 	return nil
+}
+
+func (c *Cache) HLen(key string) (uint64, error) {
+	return c.redis.HLen(context.Background(), key).Uint64()
+}
+
+func (c *Cache) LLen(key string) (uint64, error) {
+	return c.redis.LLen(context.Background(), key).Uint64()
+}
+
+func (c *Cache) HRemove(key string, field ...string) error {
+	return c.redis.HDel(context.Background(), key, field...).Err()
+}
+
+func (c *Cache) RateLimit(key string, count int64, expire ...time.Duration) (ok bool) {
+	ctx := context.Background()
+	res := c.redis.Incr(ctx, key)
+	if res.Err() != nil {
+		c.log.Errorf("RateLimit.Incr: %s", res.Err().Error())
+		return false
+	}
+
+	if len(expire) > 0 {
+		c.redis.Expire(ctx, key, expire[0])
+	}
+
+	if res.Val() >= count {
+		return false
+	}
+
+	return true
 }

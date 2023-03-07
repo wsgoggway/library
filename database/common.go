@@ -2,10 +2,11 @@ package database
 
 import (
 	"context"
-	"log"
+	"errors"
 
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/kelseyhightower/envconfig"
+
 	cache "github.com/wsgoggway/library/cache"
 	utils "github.com/wsgoggway/library/utils"
 )
@@ -13,7 +14,8 @@ import (
 type ContextKey string
 
 var (
-	c = new(config)
+	ErrNoRows = errors.New("scanning one: no rows in result set")
+	c         = new(Config)
 )
 
 const (
@@ -24,48 +26,61 @@ const (
 )
 
 // Config read only.
-type config struct {
-	PostgresMasterAddr string `envconfig:"POSTGRES_MASTER_ADDR" required:"true"`
-	PostgresSlaveAddr  string `envconfig:"POSTGRES_SLAVE_ADDR" required:"true"`
-}
-
-// Init initialization from environment variables
-func init() {
-	if err := envconfig.Process("", c); err != nil {
-		log.Fatalf("db layer failed to load configuration: %s", err)
-	}
+type Config struct {
+	PostgresMasterAddr string `envconfig:"POSTGRES_MASTER_ADDR"`
+	PostgresSlaveAddr  string `envconfig:"POSTGRES_SLAVE_ADDR"`
 }
 
 var _ IDatabase = (*Database)(nil)
 var _ Transaction = (*Tx)(nil)
 
-func New(cache cache.ICache, log utils.Logger) (*Database, error) {
-	dbl := &Database{cache: cache, log: log}
-	var err error
+func New(cache cache.ICache, log utils.Logger, conf ...*Config) (*Database, error) {
+	if err := envconfig.Process("", c); err != nil {
+		log.Fatalf("db layer failed to load configuration: %s", err)
+	}
 
-	log.Info("Connect to master postgresql")
-	masterConfig, err := pgxpool.ParseConfig(c.PostgresMasterAddr)
+	dbl := &Database{cache: cache, log: log}
+
+	if len(conf) == 0 {
+		conf = append(conf, c)
+	}
+
+	writePool, readPool, err := newConn(conf[0].PostgresMasterAddr, conf[0].PostgresSlaveAddr, cache, log)
+
 	if err != nil {
 		return nil, err
 	}
-	masterConfig.ConnConfig.PreferSimpleProtocol = true
-	dbl.writePool, err = pgxpool.ConnectConfig(context.Background(), masterConfig)
+
+	dbl.writePool = writePool
+	dbl.readPool = readPool
+
+	return dbl, nil
+}
+
+func newConn(pgAddrMaster, pgAddrSlave string, cache cache.ICache, log utils.Logger) (writePool, readPool *pgxpool.Pool, err error) {
+	log.Info("Connect to master postgresql")
+	masterConfig, err := pgxpool.ParseConfig(pgAddrMaster)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+	masterConfig.ConnConfig.PreferSimpleProtocol = true
+	writePool, err = pgxpool.ConnectConfig(context.Background(), masterConfig)
+	if err != nil {
+		return nil, nil, err
 	}
 	log.Info("Connected...")
 
 	log.Info("Connect to slaves postgresql")
-	slaveConfig, err := pgxpool.ParseConfig(c.PostgresSlaveAddr)
+	slaveConfig, err := pgxpool.ParseConfig(pgAddrSlave)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	slaveConfig.ConnConfig.PreferSimpleProtocol = true
-	dbl.readPool, err = pgxpool.ConnectConfig(context.Background(), slaveConfig)
+	readPool, err = pgxpool.ConnectConfig(context.Background(), slaveConfig)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	log.Info("Connected...")
 
-	return dbl, nil
+	return writePool, readPool, nil
 }

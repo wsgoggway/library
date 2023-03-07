@@ -84,6 +84,16 @@ func (dbl *Database) Get(ctx context.Context, returnValue interface{}, sql strin
 	return pgxscan.Select(ctx, dbl.readPool, returnValue, sql, args...)
 }
 
+func (dbl *Database) GetRows(ctx context.Context, sql string, args ...interface{}) (pgx.Rows, error) {
+	rows, err := dbl.readPool.Query(ctx, sql, args...)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return rows, nil
+}
+
 func (dbl *Database) GetOne(ctx context.Context, returnValue interface{}, sql string, args ...interface{}) error {
 	if _, ok := ctx.Value(CONTEXT_CACHE_MODE_KEY).(bool); ok {
 		key, ok := ctx.Value(CONTEXT_CACHE_KEY).(string)
@@ -155,45 +165,11 @@ func (dbl *Database) Insert(ctx context.Context, returnValue interface{}, sql st
 	}
 
 	if returnValue != nil {
-		row, err := conn.Query(ctx, sql, args...)
-		if err != nil {
-			return err
-		}
-
-		if err := pgxscan.ScanOne(returnValue, row); err != nil {
+		if err := pgxscan.Get(ctx, conn, returnValue, sql, args...); err != nil {
 			return err
 		}
 	} else {
 		cmd, err := conn.Exec(ctx, sql, args...)
-		if err != nil {
-			return err
-		}
-
-		if !cmd.Insert() {
-			dbl.log.Error(err)
-		}
-	}
-
-	return nil
-}
-
-func (dbl *Database) GetOrInsert(ctx context.Context, returnValue interface{}, sql string, args ...interface{}) error {
-	if returnValue != nil {
-		rconn, err := dbl.readPool.Acquire(ctx)
-		defer rconn.Release()
-		if err != nil {
-			return err
-		}
-		if err := pgxscan.Get(ctx, rconn, returnValue, sql, args...); err != nil {
-			return err
-		}
-	} else {
-		wconn, err := dbl.writePool.Acquire(ctx)
-		defer wconn.Release()
-		if err != nil {
-			return err
-		}
-		cmd, err := wconn.Exec(ctx, sql, args...)
 		if err != nil {
 			return err
 		}
@@ -251,4 +227,22 @@ func (dbl *Database) Delete(ctx context.Context, returnValue interface{}, sql st
 	}
 
 	return nil
+}
+
+func (dbl *Database) GetReadConn(ctx context.Context) (*pgxpool.Conn, error) {
+	c, err := dbl.readPool.Acquire(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return c, nil
+}
+
+func (dbl *Database) GetWriteConn(ctx context.Context) (*pgxpool.Conn, error) {
+	c, err := dbl.writePool.Acquire(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return c, nil
 }
