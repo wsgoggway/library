@@ -48,35 +48,3 @@ db := database.New(cacheIplm, log)
 
 // ... some code ...
 ```
-
-
-## Sender
-Layer for work with sender
-
-```go
-client := New("http://http-sender-reg.http-sender.svc.k8s.datapro", // or http://http-sender-reg.http-sender.svc.k8s.dataline
-    map[string]string{},
-    func(ms int64) {})
-
-d := new(EmailSendRequest)
-d.To = "vladimirm@example.com"
-d.Key, _ = uuid.GenerateUUID()
-d.Title = "Blizzard. World of warcraft. карта времени (30 дней)"
-d.Username = "Василий Васичкин"
-
-err := client.SendEmail(d)
-```
-
-## Finauth
-Authorization api client
-
-```go
-c := New("https://payments.wildberries.ru/authtest/connect/token")
-// or "https://payments.wildberries.ru/auth/connect/token"
-
-v, err := c.GetToken(&GetTokenInput{
-    ClientID:     "wbdigital-client",
-    ClientSecret: "jh8747w839ieyt848wiedkjf43weuew",
-    Scopes:       "fiscalization-creator",
-})
-```
